@@ -535,7 +535,7 @@ HRESULT CPlayer::CloseSession()
         // Shut down the media source. (Synchronous operation, no events.)
         if (m_pSource)
         {
-            (void)m_pSource->Shutdown();
+            //(void)m_pSource->Shutdown();
         }
         // Shut down the media session. (Synchronous operation, no events.)
         if (m_pSession)

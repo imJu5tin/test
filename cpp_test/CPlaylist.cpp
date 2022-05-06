@@ -131,6 +131,13 @@ HRESULT CPlaylist::Initialize2()
         goto done;
     }
 
+    hr = AddToPlaylist(L"tt1.mp4");
+    if (FAILED(hr))
+    {
+        goto done;
+    }
+
+
 done:
     SafeRelease(&pClock);
     return hr;
@@ -167,7 +174,7 @@ HRESULT CPlaylist::ExtendLast()
 
     HRESULT hr = m_pSequencerSource->AppendTopology(
         pTopology,
-        0,
+        SequencerTopologyFlags_Last,
         &SegmentId
     );
 
@@ -227,7 +234,7 @@ HRESULT CPlaylist::AddSegment(PCWSTR pszURL)
 
     hr = m_pSequencerSource->AppendTopology(
         pTopology,
-        0,
+        SequencerTopologyFlags_Last,
         &SegmentId
     );
 

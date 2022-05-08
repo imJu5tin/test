@@ -21,8 +21,6 @@ private:
         MFSequencerElementId    SegmentID;
         TOPOID                    TopoID;
         IMFMediaSource*         pMediaSource;
-        IMFPresentationDescriptor* pPD;
-        IMFTopology* pTopology;
     } m_segments[MAX_PLAYLIST_SEGMENTS];
 
     DWORD m_count;
@@ -38,6 +36,7 @@ public:
     HRESULT OnSessionEvent(IMFMediaEvent* pEvent, MediaEventType meType);
     HRESULT OnTopologyStatus(IMFMediaEvent* pEvent);
     HRESULT OnNewPresentation(IMFMediaEvent* pEvent);
+    HRESULT OnPresentationEnded(IMFMediaEvent* pEvent);
     HRESULT AddSegment(PCWSTR pszURL);
     HRESULT ExtendLast();
     HRESULT QueueNextSegment(IMFPresentationDescriptor* pPD);

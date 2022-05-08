@@ -160,48 +160,6 @@ CPlaylist::~CPlaylist()
     SafeRelease(&m_pPresentationClock);
 }
 
-HRESULT CPlaylist::ExtendLast()
-{
-    if(m_count == 0)
-    {
-        return -1;
-    }
-
-    MFSequencerElementId SegmentId;
-    auto TopologyID = m_segments[m_count - 1].TopoID;
-    auto pTopology = m_segments[m_count - 1].pTopology;
-    auto pMediaSource = m_segments[m_count - 1].pMediaSource;
-
-    HRESULT hr = m_pSequencerSource->AppendTopology(
-        pTopology,
-        SequencerTopologyFlags_Last,
-        &SegmentId
-    );
-
-    if (FAILED(hr))
-    {
-        goto done;
-    }
-
-    m_segments[m_count].SegmentID = SegmentId;
-    m_segments[m_count].TopoID = TopologyID;
-    m_segments[m_count].pMediaSource = pMediaSource;
-    //m_segments[m_count].pPD = pPD;
-    m_segments[m_count].pTopology = pTopology;
-
-    IMFPresentationDescriptor* tmp;
-    if(FAILED(pMediaSource->CreatePresentationDescriptor(&tmp)))
-    {
-        goto done;
-    }
-
-    m_count++;
-
-done:
-    SafeRelease(&pTopology);
-    return hr;
-}
-
 
 // Adds a segment to the sequencer.
 
@@ -259,8 +217,6 @@ HRESULT CPlaylist::AddSegment(PCWSTR pszURL)
     m_segments[m_count].SegmentID = SegmentId;
     m_segments[m_count].TopoID = TopologyID;
     m_segments[m_count].pMediaSource = pMediaSource;
-    //m_segments[m_count].pPD = pPD;
-    m_segments[m_count].pTopology = pTopology;
 
     m_count++;
 
@@ -361,7 +317,7 @@ done:
 
 HRESULT CPlaylist::DeleteSegment(DWORD index)
 {
-    if (index >= m_count)
+    if (index >= m_count || index < 0)
     {
         return E_INVALIDARG;
     }
@@ -374,11 +330,15 @@ HRESULT CPlaylist::DeleteSegment(DWORD index)
     MFSequencerElementId LastSegId = LastSegment();
     MFSequencerElementId SegmentID = m_segments[index].SegmentID;
 
+    auto mediaSource = m_segments[index].pMediaSource;
+
     HRESULT hr = m_pSequencerSource->DeleteTopology(SegmentID);
     if (FAILED(hr))
     {
         goto done;
     }
+
+    mediaSource->Shutdown();
 
     //Delete the segment entry from the list.
 
@@ -496,6 +456,15 @@ HRESULT CPlaylist::OnSessionEvent(IMFMediaEvent* pEvent, MediaEventType meType)
     return S_OK;
 }
 
+HRESULT CPlaylist::OnPresentationEnded(IMFMediaEvent* pEvent)
+{
+    CPlayer::OnPresentationEnded(pEvent);
+    
+    m_pSequencerSource->Release();
+
+    return S_OK;
+}
+
 HRESULT CPlaylist::OnNewPresentation(IMFMediaEvent* pEvent)
 {
     IMFPresentationDescriptor* pPD = NULL;
@@ -510,10 +479,14 @@ HRESULT CPlaylist::OnNewPresentation(IMFMediaEvent* pEvent)
 
     SafeRelease(&pPD);
 
-    if(m_count < 10)
+    static int counter = 0;
+    if (counter < 20)
     {
-        hr = ExtendLast();
+        counter++;
+        hr = AddToPlaylist(L"tt1.mp4");
     }
+
+    DeleteSegment(m_ActiveSegment - 1);
 
     return hr;
 }
